@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:math';
 import 'dart:ui' as ui;
-
 import 'package:flutter/material.dart';
 import 'package:gesture_x_detector/gesture_x_detector.dart';
 import 'package:vector_math/vector_math_64.dart' as vector_math;
@@ -127,8 +126,7 @@ class _CustomImageCropState extends State<CustomImageCrop>
 
   @override
   Widget build(BuildContext context) {
-    final image = _imageAsUIImage;
-    if (image == null) {
+    if (_imageAsUIImage == null) {
       return const Center(child: CircularProgressIndicator());
     }
     return LayoutBuilder(
@@ -136,7 +134,8 @@ class _CustomImageCropState extends State<CustomImageCrop>
         _width = constraints.maxWidth;
         _height = constraints.maxHeight;
         final cropWidth = min(_width, _height) * widget.cropPercentage;
-        final defaultScale = cropWidth / max(image.width, image.height);
+        final defaultScale =
+            cropWidth / max(_imageAsUIImage!.width, _imageAsUIImage!.height);
         final scale = data.scale * defaultScale;
         _path = _getPath(cropWidth, _width, _height);
         return XGestureDetector(
@@ -157,17 +156,60 @@ class _CustomImageCropState extends State<CustomImageCrop>
                     transform: Matrix4.diagonal3(
                         vector_math.Vector3(scale, scale, scale))
                       ..rotateZ(data.angle)
-                      ..translate(-image.width / 2, -image.height / 2),
-                    child: Image(
-                      image: widget.image,
+                      ..translate(-_imageAsUIImage!.width / 2,
+                          -_imageAsUIImage!.height / 2),
+                    child: Stack(
+                      children: [
+                        Image(image: widget.image),
+                        BackdropFilter(
+                          filter: ui.ImageFilter.blur(sigmaX: 250, sigmaY: 250),
+                          child: Container(
+                            color: Colors.black12,
+                            width: MediaQuery.of(context).size.width,
+                            height: MediaQuery.of(context).size.height,
+                          ),
+                        ),
+                        Image(
+                          image: widget.image,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                Center(
+                  child: ClipOval(
+                    clipper: CircleClipper(
+                      width: _width * widget.cropPercentage,
+                      height: _width * widget.cropPercentage,
+                    ),
+                    child: Container(
+                      width: _width * widget.cropPercentage,
+                      height: _width * widget.cropPercentage,
+                      child: GridView.builder(
+                        itemCount: 9,
+                        shrinkWrap: true,
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 3),
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemBuilder: (BuildContext context, int index) =>
+                            Container(
+                          decoration: BoxDecoration(
+                            border: getBorder(index, color: Colors.white54),
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ),
                 IgnorePointer(
                   child: ClipPath(
                     clipper: InvertedClipper(_path, _width, _height),
-                    child: Container(
-                      color: widget.overlayColor,
+                    child: BackdropFilter(
+                      filter: ui.ImageFilter.blur(sigmaX: 2, sigmaY: 2),
+                      child: Container(
+                        color: widget.overlayColor,
+                      ),
                     ),
                   ),
                 ),
@@ -178,6 +220,38 @@ class _CustomImageCropState extends State<CustomImageCrop>
         );
       },
     );
+  }
+
+  Border getBorder(int index,
+      {Color color = Colors.white, double width = 0.5}) {
+    switch (index) {
+      case 1:
+        return Border(
+            left: BorderSide(color: color, width: width),
+            right: BorderSide(color: color, width: width),
+            bottom: BorderSide(color: color, width: width));
+
+      case 3:
+        return Border(
+            top: BorderSide(color: color, width: width),
+            right: BorderSide(color: color, width: width),
+            bottom: BorderSide(color: color, width: width));
+
+      case 5:
+        return Border(
+            left: BorderSide(color: color, width: width),
+            top: BorderSide(color: color, width: width),
+            bottom: BorderSide(color: color, width: width));
+
+      case 7:
+        return Border(
+            left: BorderSide(color: color, width: width),
+            right: BorderSide(color: color, width: width),
+            top: BorderSide(color: color, width: width));
+
+      default:
+        return Border.all(color: color, width: width);
+    }
   }
 
   void onScaleStart(_) {
@@ -243,7 +317,7 @@ class _CustomImageCropState extends State<CustomImageCrop>
       ..scale(scale)
       ..rotateZ(data.angle);
     final bgPaint = Paint()
-      ..color = widget.backgroundColor
+      ..color = Colors.transparent
       ..style = PaintingStyle.fill;
     canvas.drawRect(Rect.fromLTWH(0, 0, cropWidth, cropWidth), bgPaint);
     canvas.save();
