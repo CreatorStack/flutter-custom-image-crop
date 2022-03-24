@@ -130,8 +130,6 @@ class _CustomImageCropState extends State<CustomImageCrop>
 
   @override
   Widget build(BuildContext context) {
-    //! TODO: optimization required
-    print('buildCount: ${++buildCount}');
     final image = _imageAsUIImage;
     if (image == null) {
       return const Center(child: CircularProgressIndicator());
