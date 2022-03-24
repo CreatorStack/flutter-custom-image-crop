@@ -1,10 +1,8 @@
 import 'dart:async';
 import 'dart:math';
 import 'dart:ui' as ui;
-
 import 'package:flutter/material.dart';
 import 'package:gesture_x_detector/gesture_x_detector.dart';
-import 'package:palette_generator/palette_generator.dart';
 import 'package:vector_math/vector_math_64.dart' as vector_math;
 
 import 'package:custom_image_crop/src/controllers/controller.dart';
@@ -87,8 +85,6 @@ class _CustomImageCropState extends State<CustomImageCrop>
   ImageStream? _imageStream;
   ImageStreamListener? _imageListener;
 
-  int buildCount = 0;
-
   @override
   void initState() {
     super.initState();
@@ -130,8 +126,7 @@ class _CustomImageCropState extends State<CustomImageCrop>
 
   @override
   Widget build(BuildContext context) {
-    final image = _imageAsUIImage;
-    if (image == null) {
+    if (_imageAsUIImage == null) {
       return const Center(child: CircularProgressIndicator());
     }
     return LayoutBuilder(
@@ -139,7 +134,8 @@ class _CustomImageCropState extends State<CustomImageCrop>
         _width = constraints.maxWidth;
         _height = constraints.maxHeight;
         final cropWidth = min(_width, _height) * widget.cropPercentage;
-        final defaultScale = cropWidth / max(image.width, image.height);
+        final defaultScale =
+            cropWidth / max(_imageAsUIImage!.width, _imageAsUIImage!.height);
         final scale = data.scale * defaultScale;
         _path = _getPath(cropWidth, _width, _height);
         return XGestureDetector(
@@ -160,7 +156,8 @@ class _CustomImageCropState extends State<CustomImageCrop>
                     transform: Matrix4.diagonal3(
                         vector_math.Vector3(scale, scale, scale))
                       ..rotateZ(data.angle)
-                      ..translate(-image.width / 2, -image.height / 2),
+                      ..translate(-_imageAsUIImage!.width / 2,
+                          -_imageAsUIImage!.height / 2),
                     child: Stack(
                       children: [
                         Image(image: widget.image),
@@ -298,16 +295,6 @@ class _CustomImageCropState extends State<CustomImageCrop>
             ),
           );
     }
-  }
-
-  // Calculate dominant color from ImageProvider
-  Future<List<Color>> getImagePalette(ImageProvider imageProvider) async {
-    final PaletteGenerator paletteGenerator =
-        await PaletteGenerator.fromImageProvider(imageProvider);
-    return [
-      paletteGenerator.dominantColor!.color,
-      paletteGenerator.lightVibrantColor!.color
-    ];
   }
 
   @override
